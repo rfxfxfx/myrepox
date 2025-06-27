@@ -1,233 +1,227 @@
 import React, { useEffect, useState } from "react";
 
-const BACKEND_URL = "https://myrepo-bh50.onrender.com"; // Update if your backend URL changes
-
-type Client = {
-  id: string;
+type Patient = {
+  id: number;
   name: string;
-  email: string;
+  birthday: string;
   address: string;
   age: number;
   gender: string;
-  contact: string;
-  firstVisit: string;
-  lastVisit: string;
+  contactNumber: string;
+  dateToday: string;
 };
 
-export default function ClientDashboard() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [editingClient, setEditingClient] = useState<Partial<Client> | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
+const baseUrl = "https://patient-backend-0wa6.onrender.com/api/patients";
 
-const fetchClients = async () => {
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/clients`);
+export default function PatientDashboard() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [auth, setAuth] = useState({ username: "", password: "" });
+
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<keyof Patient>("id");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const [form, setForm] = useState<Omit<Patient, "id">>({
+    name: "",
+    birthday: "",
+    address: "",
+    age: 0,
+    gender: "",
+    contactNumber: "",
+    dateToday: new Date().toISOString().slice(0, 10)
+  });
+
+  const [showForm, setShowForm] = useState(false);
+
+  const fetchPatients = async () => {
+    const res = await fetch(baseUrl);
     const data = await res.json();
+    const sorted = [...(data.patients || data)].filter((p: Patient) =>
+      p.name.toLowerCase().includes(search.toLowerCase())
+    ).sort((a: Patient, b: Patient) => {
+      if (sortBy === "age") {
+        return sortDir === "asc" ? a.age - b.age : b.age - a.age;
+      }
+      const aVal = a[sortBy]?.toString().toLowerCase() ?? "";
+      const bVal = b[sortBy]?.toString().toLowerCase() ?? "";
+      return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
 
-    // ✅ Handle non-array or error response safely
-    if (Array.isArray(data)) {
-      setClients(data);
-    } else {
-      console.error("Expected array, but got:", data);
-      setClients([]); // fallback to avoid crash
-    }
-  } catch (err) {
-    console.error("Error fetching clients:", err);
-    setClients([]); // prevent crash on network error
-  }
-};
-
-
-  const handleDelete = async (id: string) => {
-    try {
-      await fetch(`${BACKEND_URL}/api/clients/${id}`, { method: "DELETE" });
-      fetchClients();
-    } catch (err) {
-      console.error("Error deleting client:", err);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!editingClient) return;
-
-    const clientToSave = {
-      ...editingClient,
-      age: Number(editingClient.age),
-    };
-
-    const method = editingClient.id ? "PUT" : "POST";
-    const url = editingClient.id
-      ? `${BACKEND_URL}/api/clients/${editingClient.id}`
-      : `${BACKEND_URL}/api/clients`;
-
-    try {
-      await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(clientToSave),
-      });
-
-      setFormOpen(false);
-      setEditingClient(null);
-      fetchClients();
-    } catch (err) {
-      console.error("Error saving client:", err);
-    }
-  };
-
-  const openForm = (client?: Client) => {
-    setEditingClient(client || {});
-    setFormOpen(true);
+    setPatients(sorted);
   };
 
   useEffect(() => {
-    fetchClients();
-  }, []);
+    if (isLoggedIn) fetchPatients();
+  }, [isLoggedIn, search, sortBy, sortDir]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (auth.username === "admin" && auth.password === "1234") {
+      setIsLoggedIn(true);
+    } else {
+      alert("Invalid credentials");
+    }
+  };
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: name === "age" ? +value : value }));
+  };
+
+  const handleSubmit = async () => {
+    const res = await fetch(baseUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form)
+    });
+
+    if (res.ok) {
+      setForm({
+        name: "",
+        birthday: "",
+        address: "",
+        age: 0,
+        gender: "",
+        contactNumber: "",
+        dateToday: new Date().toISOString().slice(0, 10)
+      });
+      setShowForm(false);
+      fetchPatients();
+    }
+  };
+
+  const toggleSort = (field: keyof Patient) => {
+    if (sortBy === field) {
+      setSortDir(prev => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortDir("asc");
+    }
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <form onSubmit={handleLogin} className="border p-6 rounded shadow-md w-80 space-y-4 bg-white">
+          <h2 className="text-xl font-semibold text-center">Admin Login</h2>
+          <input
+            name="username"
+            placeholder="Username"
+            value={auth.username}
+            onChange={(e) => setAuth({ ...auth, username: e.target.value })}
+            className="w-full border p-2 rounded"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={auth.password}
+            onChange={(e) => setAuth({ ...auth, password: e.target.value })}
+            className="w-full border p-2 rounded"
+          />
+          <button type="submit" className="bg-blue-600 text-white w-full py-2 rounded">
+            Login
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Client Dashboard</h1>
-      <button
-        onClick={() => openForm()}
-        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
-      >
-        Add New Client
+    <div className="p-4 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Patient Records</h1>
+
+      <button onClick={() => setShowForm(true)} className="bg-green-600 text-white px-4 py-2 rounded">
+        Add New Patient
       </button>
-      <div className="overflow-auto">
-        <table className="w-full border text-sm sm:text-base">
-          <thead className="bg-gray-100">
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Address</th>
-              <th>Age</th>
-              <th>Gender</th>
-              <th>Contact</th>
-              <th>First Visit</th>
-              <th>Last Visit</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((client) => (
-              <tr key={client.id} className="border-t">
-                <td>{client.name}</td>
-                <td>{client.email}</td>
-                <td>{client.address}</td>
-                <td>{client.age}</td>
-                <td>{client.gender}</td>
-                <td>{client.contact}</td>
-                <td>{client.firstVisit}</td>
-                <td>{client.lastVisit}</td>
-                <td className="space-x-2">
-                  <button
-                    onClick={() => openForm(client)}
-                    className="text-blue-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(client.id)}
-                    className="text-red-600"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      <div className="mt-4">
+        <input
+          type="text"
+          placeholder="Search patients..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-sm border p-2 rounded"
+        />
       </div>
 
-      {formOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded w-full max-w-lg space-y-4">
-            <h2 className="text-lg font-semibold">
-              {editingClient?.id ? "Edit Client" : "Add Client"}
-            </h2>
-            <input
-              type="text"
-              placeholder="Name"
-              value={editingClient?.name || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, name: e.target.value }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={editingClient?.email || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, email: e.target.value }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Address"
-              value={editingClient?.address || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, address: e.target.value }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="number"
-              placeholder="Age"
-              value={editingClient?.age || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, age: Number(e.target.value) }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Gender"
-              value={editingClient?.gender || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, gender: e.target.value }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Contact"
-              value={editingClient?.contact || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, contact: e.target.value }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="date"
-              value={editingClient?.firstVisit || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, firstVisit: e.target.value }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="date"
-              value={editingClient?.lastVisit || ""}
-              onChange={(e) =>
-                setEditingClient((prev) => ({ ...prev!, lastVisit: e.target.value }))
-              }
-              className="w-full border px-3 py-2 rounded"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setFormOpen(false)}
-                className="bg-gray-300 px-4 py-2 rounded"
+      <table className="w-full border text-sm mt-6">
+        <thead className="bg-gray-100">
+          <tr>
+            {["name", "birthday", "address", "age", "gender", "contactNumber", "dateToday"].map((col) => (
+              <th
+                key={col}
+                onClick={() => toggleSort(col as keyof Patient)}
+                className="border p-2 cursor-pointer hover:bg-gray-200"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="bg-green-600 text-white px-4 py-2 rounded"
-              >
-                Save
-              </button>
+                {col.charAt(0).toUpperCase() + col.slice(1)} {sortBy === col && (sortDir === "asc" ? "↑" : "↓")}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {patients.map((p) => (
+            <tr key={p.id}>
+              <td className="border p-2">{p.name}</td>
+              <td className="border p-2">{p.birthday.slice(0, 10)}</td>
+              <td className="border p-2">{p.address}</td>
+              <td className="border p-2">{p.age}</td>
+              <td className="border p-2">{p.gender}</td>
+              <td className="border p-2">{p.contactNumber}</td>
+              <td className="border p-2">{p.dateToday.slice(0, 10)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md space-y-4">
+            <h2 className="text-xl font-semibold">Add New Patient</h2>
+
+            <div>
+              <label className="block text-sm">Full Name</label>
+              <input name="name" value={form.name} onChange={handleInput} className="w-full border p-2 rounded" />
+            </div>
+
+            <div>
+              <label className="block text-sm">Birthday</label>
+              <input type="date" name="birthday" value={form.birthday} onChange={handleInput} className="w-full border p-2 rounded" />
+            </div>
+
+            <div>
+              <label className="block text-sm">Address</label>
+              <input name="address" value={form.address} onChange={handleInput} className="w-full border p-2 rounded" />
+            </div>
+
+            <div>
+              <label className="block text-sm">Age</label>
+              <input name="age" type="number" value={form.age} onChange={handleInput} className="w-full border p-2 rounded" />
+            </div>
+
+            <div>
+              <label className="block text-sm">Gender</label>
+              <select name="gender" value={form.gender} onChange={handleInput} className="w-full border p-2 rounded">
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm">Contact Number</label>
+              <input name="contactNumber" value={form.contactNumber} onChange={handleInput} className="w-full border p-2 rounded" />
+            </div>
+
+            <div>
+              <label className="block text-sm">Date Today</label>
+              <input type="date" name="dateToday" value={form.dateToday} onChange={handleInput} className="w-full border p-2 rounded" />
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setShowForm(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+              <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
             </div>
           </div>
         </div>

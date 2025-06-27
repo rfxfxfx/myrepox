@@ -27384,210 +27384,183 @@ const InquiryForm = () => {
   );
 };
 
-const BACKEND_URL = "https://myrepo-bh50.onrender.com";
-function ClientDashboard() {
-  const [clients, setClients] = reactExports.useState([]);
-  const [editingClient, setEditingClient] = reactExports.useState(null);
-  const [formOpen, setFormOpen] = reactExports.useState(false);
-  const fetchClients = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/clients`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setClients(data);
-      } else {
-        console.error("Expected array, but got:", data);
-        setClients([]);
+const baseUrl = "https://patient-backend-0wa6.onrender.com/api/patients";
+function PatientDashboard() {
+  const [isLoggedIn, setIsLoggedIn] = reactExports.useState(false);
+  const [auth, setAuth] = reactExports.useState({ username: "", password: "" });
+  const [patients, setPatients] = reactExports.useState([]);
+  const [search, setSearch] = reactExports.useState("");
+  const [sortBy, setSortBy] = reactExports.useState("id");
+  const [sortDir, setSortDir] = reactExports.useState("asc");
+  const [form, setForm] = reactExports.useState({
+    name: "",
+    birthday: "",
+    address: "",
+    age: 0,
+    gender: "",
+    contactNumber: "",
+    dateToday: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
+  });
+  const [showForm, setShowForm] = reactExports.useState(false);
+  const fetchPatients = async () => {
+    const res = await fetch(baseUrl);
+    const data = await res.json();
+    const sorted = [...data.patients || data].filter(
+      (p) => p.name.toLowerCase().includes(search.toLowerCase())
+    ).sort((a, b) => {
+      if (sortBy === "age") {
+        return sortDir === "asc" ? a.age - b.age : b.age - a.age;
       }
-    } catch (err) {
-      console.error("Error fetching clients:", err);
-      setClients([]);
-    }
-  };
-  const handleDelete = async (id) => {
-    try {
-      await fetch(`${BACKEND_URL}/api/clients/${id}`, { method: "DELETE" });
-      fetchClients();
-    } catch (err) {
-      console.error("Error deleting client:", err);
-    }
-  };
-  const handleSave = async () => {
-    if (!editingClient) return;
-    const clientToSave = {
-      ...editingClient,
-      age: Number(editingClient.age)
-    };
-    const method = editingClient.id ? "PUT" : "POST";
-    const url = editingClient.id ? `${BACKEND_URL}/api/clients/${editingClient.id}` : `${BACKEND_URL}/api/clients`;
-    try {
-      await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(clientToSave)
-      });
-      setFormOpen(false);
-      setEditingClient(null);
-      fetchClients();
-    } catch (err) {
-      console.error("Error saving client:", err);
-    }
-  };
-  const openForm = (client) => {
-    setEditingClient(client || {});
-    setFormOpen(true);
+      const aVal = a[sortBy]?.toString().toLowerCase() ?? "";
+      const bVal = b[sortBy]?.toString().toLowerCase() ?? "";
+      return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    setPatients(sorted);
   };
   reactExports.useEffect(() => {
-    fetchClients();
-  }, []);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-5xl mx-auto p-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl font-bold mb-4", children: "Client Dashboard" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "button",
+    if (isLoggedIn) fetchPatients();
+  }, [isLoggedIn, search, sortBy, sortDir]);
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (auth.username === "admin" && auth.password === "1234") {
+      setIsLoggedIn(true);
+    } else {
+      alert("Invalid credentials");
+    }
+  };
+  const handleInput = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: name === "age" ? +value : value }));
+  };
+  const handleSubmit = async () => {
+    const res = await fetch(baseUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form)
+    });
+    if (res.ok) {
+      setForm({
+        name: "",
+        birthday: "",
+        address: "",
+        age: 0,
+        gender: "",
+        contactNumber: "",
+        dateToday: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
+      });
+      setShowForm(false);
+      fetchPatients();
+    }
+  };
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortDir((prev) => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortDir("asc");
+    }
+  };
+  if (!isLoggedIn) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center h-screen", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleLogin, className: "border p-6 rounded shadow-md w-80 space-y-4 bg-white", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-semibold text-center", children: "Admin Login" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "input",
+        {
+          name: "username",
+          placeholder: "Username",
+          value: auth.username,
+          onChange: (e) => setAuth({ ...auth, username: e.target.value }),
+          className: "w-full border p-2 rounded"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "input",
+        {
+          type: "password",
+          name: "password",
+          placeholder: "Password",
+          value: auth.password,
+          onChange: (e) => setAuth({ ...auth, password: e.target.value }),
+          className: "w-full border p-2 rounded"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", className: "bg-blue-600 text-white w-full py-2 rounded", children: "Login" })
+    ] }) });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 max-w-6xl mx-auto", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl font-bold mb-4", children: "Patient Records" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowForm(true), className: "bg-green-600 text-white px-4 py-2 rounded", children: "Add New Patient" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "input",
       {
-        onClick: () => openForm(),
-        className: "bg-blue-600 text-white px-4 py-2 rounded mb-4",
-        children: "Add New Client"
+        type: "text",
+        placeholder: "Search patients...",
+        value: search,
+        onChange: (e) => setSearch(e.target.value),
+        className: "w-full max-w-sm border p-2 rounded"
       }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full border text-sm sm:text-base", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "bg-gray-100", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Name" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Email" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Address" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Age" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Gender" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Contact" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "First Visit" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Last Visit" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: "Actions" })
-      ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: clients.map((client) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-t", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.name }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.email }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.address }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.age }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.gender }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.contact }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.firstVisit }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: client.lastVisit }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "space-x-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              onClick: () => openForm(client),
-              className: "text-blue-600",
-              children: "Edit"
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              onClick: () => handleDelete(client.id),
-              className: "text-red-600",
-              children: "Delete"
-            }
-          )
+    ) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full border text-sm mt-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "bg-gray-100", children: /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: ["name", "birthday", "address", "age", "gender", "contactNumber", "dateToday"].map((col) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "th",
+        {
+          onClick: () => toggleSort(col),
+          className: "border p-2 cursor-pointer hover:bg-gray-200",
+          children: [
+            col.charAt(0).toUpperCase() + col.slice(1),
+            " ",
+            sortBy === col && (sortDir === "asc" ? "↑" : "↓")
+          ]
+        },
+        col
+      )) }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: patients.map((p) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "border p-2", children: p.name }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "border p-2", children: p.birthday.slice(0, 10) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "border p-2", children: p.address }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "border p-2", children: p.age }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "border p-2", children: p.gender }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "border p-2", children: p.contactNumber }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "border p-2", children: p.dateToday.slice(0, 10) })
+      ] }, p.id)) })
+    ] }),
+    showForm && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed inset-0 bg-black/40 flex items-center justify-center z-50", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-6 rounded shadow-lg w-full max-w-md space-y-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-semibold", children: "Add New Patient" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-sm", children: "Full Name" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { name: "name", value: form.name, onChange: handleInput, className: "w-full border p-2 rounded" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-sm", children: "Birthday" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "date", name: "birthday", value: form.birthday, onChange: handleInput, className: "w-full border p-2 rounded" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-sm", children: "Address" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { name: "address", value: form.address, onChange: handleInput, className: "w-full border p-2 rounded" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-sm", children: "Age" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { name: "age", type: "number", value: form.age, onChange: handleInput, className: "w-full border p-2 rounded" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-sm", children: "Gender" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { name: "gender", value: form.gender, onChange: handleInput, className: "w-full border p-2 rounded", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Select Gender" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "male", children: "Male" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "female", children: "Female" })
         ] })
-      ] }, client.id)) })
-    ] }) }),
-    formOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-6 rounded w-full max-w-lg space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold", children: editingClient?.id ? "Edit Client" : "Add Client" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "text",
-          placeholder: "Name",
-          value: editingClient?.name || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, name: e.target.value })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "email",
-          placeholder: "Email",
-          value: editingClient?.email || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, email: e.target.value })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "text",
-          placeholder: "Address",
-          value: editingClient?.address || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, address: e.target.value })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "number",
-          placeholder: "Age",
-          value: editingClient?.age || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, age: Number(e.target.value) })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "text",
-          placeholder: "Gender",
-          value: editingClient?.gender || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, gender: e.target.value })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "text",
-          placeholder: "Contact",
-          value: editingClient?.contact || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, contact: e.target.value })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "date",
-          value: editingClient?.firstVisit || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, firstVisit: e.target.value })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "date",
-          value: editingClient?.lastVisit || "",
-          onChange: (e) => setEditingClient((prev) => ({ ...prev, lastVisit: e.target.value })),
-          className: "w-full border px-3 py-2 rounded"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setFormOpen(false),
-            className: "bg-gray-300 px-4 py-2 rounded",
-            children: "Cancel"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: handleSave,
-            className: "bg-green-600 text-white px-4 py-2 rounded",
-            children: "Save"
-          }
-        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-sm", children: "Contact Number" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { name: "contactNumber", value: form.contactNumber, onChange: handleInput, className: "w-full border p-2 rounded" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-sm", children: "Date Today" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "date", name: "dateToday", value: form.dateToday, onChange: handleInput, className: "w-full border p-2 rounded" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-2 mt-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowForm(false), className: "bg-gray-500 text-white px-4 py-2 rounded", children: "Cancel" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleSubmit, className: "bg-blue-600 text-white px-4 py-2 rounded", children: "Submit" })
       ] })
     ] }) })
   ] });
@@ -27603,7 +27576,7 @@ function App() {
         /* @__PURE__ */ jsxRuntimeExports.jsx(Portfolio, {}),
         /* @__PURE__ */ jsxRuntimeExports.jsx(InquiryForm, {})
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/dashboard", element: /* @__PURE__ */ jsxRuntimeExports.jsx(ClientDashboard, {}) })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/dashboard", element: /* @__PURE__ */ jsxRuntimeExports.jsx(PatientDashboard, {}) })
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Footer, {})
   ] }) });
