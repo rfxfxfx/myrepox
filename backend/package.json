@@ -18,7 +18,9 @@
     "@prisma/client": "^6.10.1",
     "cors": "^2.8.5",
     "dotenv": "^16.6.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "file-saver": "^2.0.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
