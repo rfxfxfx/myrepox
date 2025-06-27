@@ -52990,7 +52990,7 @@ function PatientDashboard() {
     name: "",
     birthday: "",
     address: "",
-    age: 0,
+    age: NaN,
     gender: "",
     contactNumber: "",
     dateToday: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
@@ -53026,7 +53026,10 @@ function PatientDashboard() {
   };
   const handleInput = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: name === "age" ? +value : value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "age" ? value === "" ? NaN : +value : value
+    }));
   };
   const handleSubmit = async () => {
     const url = editingId ? `${baseUrl}/${editingId}` : baseUrl;
@@ -53142,14 +53145,17 @@ function PatientDashboard() {
         ] })
       ] }, p.id)) })
     ] }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between items-center mt-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between items-center mt-4 flex-wrap gap-2", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { disabled: page === 1, onClick: () => setPage((p) => p - 1), className: "px-4 py-1 bg-gray-200 rounded", children: "Prev" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-        "Page ",
-        page,
-        " of ",
-        totalPages
-      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-1", children: Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: () => setPage(pg),
+          className: `px-3 py-1 rounded ${pg === page ? "bg-blue-500 text-white" : "bg-gray-200"}`,
+          children: pg
+        },
+        pg
+      )) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { disabled: page === totalPages, onClick: () => setPage((p) => p + 1), className: "px-4 py-1 bg-gray-200 rounded", children: "Next" })
     ] }),
     selectedIds.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleMultiDelete, className: "bg-red-500 text-white px-4 py-2 mt-4 rounded", children: "Delete Selected" }),
@@ -53173,9 +53179,11 @@ function PatientDashboard() {
                 " Patient"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("input", { className: "w-full border p-2", placeholder: "Name", name: "name", value: form.name, onChange: handleInput }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("input", { className: "w-full border p-2", placeholder: "Birthday", name: "birthday", type: "date", value: form.birthday, onChange: handleInput }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-sm text-gray-700", children: "Birthday" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("input", { className: "w-full border p-2", type: "date", name: "birthday", value: form.birthday, onChange: handleInput }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("input", { className: "w-full border p-2", placeholder: "Address", name: "address", value: form.address, onChange: handleInput }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("input", { className: "w-full border p-2", placeholder: "Age", name: "age", type: "number", value: form.age, onChange: handleInput }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-sm text-gray-700", children: "Age" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("input", { className: "w-full border p-2", name: "age", type: "number", value: isNaN(form.age) ? "" : form.age, onChange: handleInput }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "w-full border p-2", name: "gender", value: form.gender, onChange: handleInput, children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Select Gender" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "male", children: "Male" }),

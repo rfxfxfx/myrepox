@@ -28,7 +28,7 @@ export default function PatientDashboard() {
     name: "",
     birthday: "",
     address: "",
-    age: 0,
+    age: NaN,
     gender: "",
     contactNumber: "",
     dateToday: new Date().toISOString().slice(0, 10),
@@ -72,7 +72,10 @@ export default function PatientDashboard() {
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: name === "age" ? +value : value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "age" ? (value === "" ? NaN : +value) : value,
+    }));
   };
 
   const handleSubmit = async () => {
@@ -205,9 +208,19 @@ export default function PatientDashboard() {
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
+      <div className="flex justify-between items-center mt-4 flex-wrap gap-2">
         <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-4 py-1 bg-gray-200 rounded">Prev</button>
-        <span>Page {page} of {totalPages}</span>
+        <div className="flex gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
+            <button
+              key={pg}
+              onClick={() => setPage(pg)}
+              className={`px-3 py-1 rounded ${pg === page ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+            >
+              {pg}
+            </button>
+          ))}
+        </div>
         <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="px-4 py-1 bg-gray-200 rounded">Next</button>
       </div>
 
@@ -219,17 +232,17 @@ export default function PatientDashboard() {
       {/* Form Modal */}
       <AnimatePresence>
         {showForm && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
               className="bg-white p-6 rounded shadow space-y-4 w-full max-w-md">
               <h2 className="text-xl font-bold">{editingId ? "Edit" : "Add"} Patient</h2>
               <input className="w-full border p-2" placeholder="Name" name="name" value={form.name} onChange={handleInput} />
-              <input className="w-full border p-2" placeholder="Birthday" name="birthday" type="date" value={form.birthday} onChange={handleInput} />
+              <label className="text-sm text-gray-700">Birthday</label>
+              <input className="w-full border p-2" type="date" name="birthday" value={form.birthday} onChange={handleInput} />
               <input className="w-full border p-2" placeholder="Address" name="address" value={form.address} onChange={handleInput} />
-              <input className="w-full border p-2" placeholder="Age" name="age" type="number" value={form.age} onChange={handleInput} />
+              <label className="text-sm text-gray-700">Age</label>
+              <input className="w-full border p-2" name="age" type="number" value={isNaN(form.age) ? "" : form.age} onChange={handleInput} />
               <select className="w-full border p-2" name="gender" value={form.gender} onChange={handleInput}>
                 <option value="">Select Gender</option>
                 <option value="male">Male</option>
