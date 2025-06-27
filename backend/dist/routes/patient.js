@@ -17,6 +17,7 @@ const express_1 = __importDefault(require("express"));
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 exports.patientRouter = express_1.default.Router();
+// POST /api/patients — Add new patient
 exports.patientRouter.post("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { name, birthday, address, age, gender, contactNumber } = req.body;
@@ -35,5 +36,17 @@ exports.patientRouter.post("/", (req, res) => __awaiter(void 0, void 0, void 0, 
     }
     catch (error) {
         res.status(500).json({ error: "Failed to add patient" });
+    }
+}));
+// GET /api/patients — Fetch all patients
+exports.patientRouter.get("/", (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const patients = yield prisma.patient.findMany({
+            orderBy: { id: "desc" } // Optional: newest first
+        });
+        res.json(patients);
+    }
+    catch (error) {
+        res.status(500).json({ error: "Failed to fetch patients" });
     }
 }));
